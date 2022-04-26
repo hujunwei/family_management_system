@@ -18,5 +18,4 @@
     <sql id="Base_Column_List">
         id, group_name, group_type, group_desc, create_person, create_date, update_person, update_date
     </sql>
-
 </mapper>

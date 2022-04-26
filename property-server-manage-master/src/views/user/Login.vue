@@ -194,7 +194,12 @@ export default {
                     delete loginParams.username
                     loginParams[!state.loginType ? 'email' : 'username'] = values.username
                     loginParams.password = md5(values.password)
-                    Login(loginParams)
+
+                    // use QS to transfer params to backend that can be parsed
+                    const QS = require('qs')
+                    const params = QS.stringify(loginParams)
+
+                    Login(params)
                         .then(res => this.loginSuccess(res))
                         .catch(err => this.requestFailed(err))
                         .finally(() => {
