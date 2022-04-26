@@ -10,9 +10,3 @@ mybatis:
   mapper-locations: classpath:com/mashibing/mapper/*.xml
   configuration:
     map-underscore-to-camel-case: true
-logging:
-  level:
-    com:
-      mashibing:
-        mapper:
-          common: debug
