@@ -23,6 +23,8 @@ public class TblUserRecord implements Serializable {
     @TableId(value = "id", type = IdType.AUTO)
     private Integer id;
 
+    private String token;
+
     /**
      * 用户姓名
      */
@@ -389,5 +391,13 @@ public class TblUserRecord implements Serializable {
 
     public void setTblCompany(TblCompany tblCompany) {
         this.tblCompany = tblCompany;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
     }
 }

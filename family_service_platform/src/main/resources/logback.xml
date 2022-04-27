@@ -33,7 +33,7 @@
         <appender-ref ref="Stdout" />
         <appender-ref ref="RollingFile" />
     </root>
-    <logger name="com.msb.mapper" level="DEBUG"></logger>
+    <logger name="com.msb.mapper" level="INFO"></logger>
     <!--日志异步到数据库 -->
     <!--<appender name="DB" class="ch.qos.logback.classic.db.DBAppender">
             日志异步到数据库

@@ -252,7 +252,7 @@ export default {
             })
         },
         stepCaptchaSuccess() {
-            this.loginSuccess()
+           // this.loginSuccess()
         },
         stepCaptchaCancel() {
             this.Logout().then(() => {

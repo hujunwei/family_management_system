@@ -2,10 +2,18 @@ package com.mashibing.controller;
 
 import com.alibaba.fastjson.JSONObject;
 import com.mashibing.bean.TblUserRecord;
+import com.mashibing.returnJson.Permission;
+import com.mashibing.returnJson.Permissions;
+import com.mashibing.returnJson.ReturnObject;
+import com.mashibing.returnJson.UserInfo;
 import com.mashibing.service.LoginService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import javax.servlet.http.HttpSession;
+import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 public class LoginController {
@@ -20,9 +28,35 @@ public class LoginController {
     }
 
     @RequestMapping("/auth/login")
-    public String login(String username, String password) {
+    public String login(String username, String password, HttpSession session) {
         TblUserRecord tblUserRecord = loginService.login(username, password);
-        System.out.println(tblUserRecord);
-        return JSONObject.toJSONString(tblUserRecord);
+        tblUserRecord.setToken(tblUserRecord.getUserName());
+        session.setAttribute("loginUser", tblUserRecord);
+        ReturnObject returnObject = new ReturnObject(tblUserRecord);
+
+        return JSONObject.toJSONString(returnObject);
+    }
+
+    @RequestMapping("/user/info")
+    public String info(HttpSession session) {
+        TblUserRecord tblUserRecord = (TblUserRecord) session.getAttribute("loginUser");
+        String[] splitedRolePrivileges = tblUserRecord.getTblRole().getRolePrivileges().split("-");
+
+        List<Permission> permissionList = new ArrayList<>();
+        for (String splitedRolePrivilege : splitedRolePrivileges) {
+            permissionList.add(new Permission(splitedRolePrivilege));
+        }
+
+        UserInfo userInfo = new UserInfo(tblUserRecord.getUserName(), new Permissions(permissionList));
+        ReturnObject returnObject = new ReturnObject(userInfo);
+
+        return JSONObject.toJSONString(returnObject);
+    }
+
+    @RequestMapping("/auth/logout")
+    public JSONObject loginOut(HttpSession session){
+        System.out.println("退出登录");
+        session.invalidate();
+        return JSONObject.parseObject(JSONObject.toJSONString(new ReturnObject(null)));
     }
 }

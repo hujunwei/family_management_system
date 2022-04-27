@@ -12,6 +12,8 @@ import { axios } from '@/utils/request'
  * @param parameter
  * @returns {*}
  */
+axios.defaults.withCredentials = true
+
 export function login(parameter) {
     return axios({
         url: '/auth/login',
