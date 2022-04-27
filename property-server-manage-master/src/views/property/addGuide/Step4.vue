@@ -3,27 +3,29 @@
     <!-- <a-form-model ref="ruleForm" :model="form2" :label-col="labelCol" :wrapper-col="wrapperCol"> -->
     <a-row class="header">
       选择楼宇:
-      <a-select v-model="form2.region">
-        <a-select-option value="1">1</a-select-option>
-        <a-select-option value="2">2</a-select-option>
+      <a-select v-model="form2.building" @change="changeBuilding">
+        <a-select-option :key="index" :value="item.buildingCode" v-for="(item, index) in buildingSelect">
+            {{ item.buildingName }}
+        </a-select-option>
       </a-select>选择单元:
-      <a-select v-model="form2.region">
-        <a-select-option value="1">1</a-select-option>
-        <a-select-option value="2">2</a-select-option>
-      </a-select>
-      建筑面积:
-      <a-input style="width: 40px;padding: 0;text-align: center;"></a-input>
-      使用面积:
+      <a-select v-model="form2.unit" @change="changeUnit">
+          <a-select-option :key="index" :value="item.unitCode" v-for="(item, index) in unitSelect">
+              {{ item.unitName }}
+          </a-select-option>
+      </a-select>建筑面积:
+      <a-input style="width: 40px;padding: 0;text-align: center;"></a-input>使用面积:
       <a-input style="width: 40px;padding: 0;text-align: center;"></a-input>
     </a-row>
     <a-row>
       <a-table :columns="columns" :dataSource="data" bordered align="center">
         <template
           v-for="col in [
-            'floornumber',
-            'housecode',
-            'constructionarea',
-            'usagearea',
+            'floorNumber',
+            'unitCode',
+            'cellCode',
+            'cellName',
+            'cellBuildArea',
+            'cellUsedArea',
             'remark'
           ]"
           :slot="col"
@@ -54,41 +56,58 @@
         </template>
       </a-table>
       <a-row>
-        <a-button type="primary" @click="nextStep()">下一步</a-button>
+        <a-button type="primary" @click="nextStep()">下一步</a-button>&nbsp;
+        <a-button type="primary" @click="prevStep()">上一步</a-button>
       </a-row>
     </a-row>
   </div>
 </template>
 
 <script>
+import { insertCell, selectBuildingByEstate, selectUintByBuildingCode, selectCell } from '@/api/estate'
+const QS = require('qs')
 const columns = [
     {
         align: 'center',
         title: '楼层数',
-        dataIndex: 'floornumber',
+        dataIndex: 'floorNumber',
         width: '6%',
-        scopedSlots: { customRender: 'floornumber' }
+        scopedSlots: { customRender: 'floorNumber' }
+    },
+    {
+        align: 'center',
+        title: '单元编码',
+        dataIndex: 'unitCode',
+        width: '6%',
+        scopedSlots: { customRender: 'unitCode' }
     },
     {
         align: 'center',
         title: '房间编码',
-        dataIndex: 'housecode',
+        dataIndex: 'cellCode',
         width: '6%',
-        scopedSlots: { customRender: 'housecode' }
+        scopedSlots: { customRender: 'cellCode' }
+    },
+    {
+        align: 'center',
+        title: '房间名称',
+        dataIndex: 'cellName',
+        width: '6%',
+        scopedSlots: { customRender: 'cellName' }
     },
     {
         align: 'center',
         title: '建筑面积',
-        dataIndex: 'constructionarea',
+        dataIndex: 'cellBuildArea',
         width: '6%',
-        scopedSlots: { customRender: 'constructionarea' }
+        scopedSlots: { customRender: 'cellBuildArea' }
     },
     {
         align: 'center',
         title: '使用面积',
-        dataIndex: 'usagearea',
+        dataIndex: 'cellUsedArea',
         width: '7%',
-        scopedSlots: { customRender: 'usagearea' }
+        scopedSlots: { customRender: 'cellUsedArea' }
     },
     {
         align: 'center',
@@ -107,26 +126,17 @@ const columns = [
 ]
 
 const data = []
-for (let i = 0; i < 10; i++) {
-    data.push({
-        key: i.toString(),
-        floornumber: `B-${i + 1}`,
-        housecode: `U-${i + 1}`,
-        constructionarea: `${i + 1}单元`,
-        usagearea: 1,
-        remark: ''
-    })
-}
 export default {
     name: 'Step4',
     data() {
-        this.cacheData = data.map(item => ({ ...item }))
         return {
             labelCol: { span: 2 },
             wrapperCol: { span: 1 },
             form2: {
                 name: '',
                 region: undefined,
+                building: [],
+                unit: [],
                 date1: undefined,
                 delivery: false,
                 type: [],
@@ -135,16 +145,68 @@ export default {
             },
             data,
             columns,
-            editingKey: ''
+            editingKey: '',
+            buildingSelect: [],
+            unitSelect: []
         }
     },
+    created() {
+        // 插入所有的房间并且数据回显
+        insertCell(this.$store.state.threeStep.cellMessage).then(res => {
+            const result = res.result
+            for (let i = 0; i < result.length; i++) {
+                const cell = result[i]
+                data.push({
+                    key: cell.id,
+                    floorNumber: cell.floorNumber,
+                    unitCode: cell.unitCode,
+                    cellCode: cell.cellCode,
+                    cellName: cell.cellName,
+                    cellBuildArea: cell.cellBuildArea,
+                    cellUsedArea: cell.cellUsedArea,
+                    remark: cell.remark
+                })
+            }
+            this.cacheData = data.map(item => ({ ...item }))
+        })
+        // 查询所有的楼宇信息，并且有选择性的显示
+        selectBuildingByEstate(QS.stringify({ estateCode: this.$store.state.threeStep.estateCode })).then(res => {
+            this.buildingSelect = res.result
+        })
+    },
     methods: {
+        changeUnit() {
+            selectCell(QS.stringify({ unitCode: this.form2.unit })).then(res => {
+                const result = res.result
+                const myData = []
+                for (let i = 0; i < result.length; i++) {
+                    const cell = result[i]
+                    myData.push({
+                        key: cell.id,
+                        floorNumber: cell.floorNumber,
+                        unitCode: cell.unitCode,
+                        cellCode: cell.cellCode,
+                        cellName: cell.cellName,
+                        cellBuildArea: cell.cellBuildArea,
+                        cellUsedArea: cell.cellUsedArea,
+                        remark: cell.result
+                    })
+                }
+                this.data = myData
+                this.cacheData = this.data.map(item => ({ ...item }))
+            })
+        },
+        changeBuilding() {
+            selectUintByBuildingCode(QS.stringify({ buildingCode: this.form2.building })).then(res => {
+                this.unitSelect = res.result
+            })
+        },
         nextStep() {
             this.$emit('nextStep')
             console.log(33)
         },
         prevStep() {
-            // this.$emit('prevStep')
+            this.$emit('prevStep')
         },
         handleChange(value, key, column) {
             const newData = [...this.data]

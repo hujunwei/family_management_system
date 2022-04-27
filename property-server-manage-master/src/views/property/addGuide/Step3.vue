@@ -3,16 +3,22 @@
     <!-- <a-form-model ref="ruleForm" :model="form2" :label-col="labelCol" :wrapper-col="wrapperCol"> -->
     <a-row class="header">
       楼层数量:
-      <a-input style="width: 30px;padding: 0;text-align: center;"></a-input>开始房号:
+      <a-input style="width: 30px;padding: 0;text-align: center;" v-model="form2.floorNumber" @blur="changeFloor"></a-input>开始房号:
       <!-- <a-form-model-item label="单元数量：" prop="region" class="units" :labelCol="labelCol" :wrapperCol="wrapperCol"> -->
-      <a-select v-model="form2.region">
+      <a-select v-model="form2.startCell" @change="changeStartCell">
         <a-select-option value="1">1</a-select-option>
         <a-select-option value="2">2</a-select-option>
+        <a-select-option value="3">3</a-select-option>
+        <a-select-option value="4">4</a-select-option>
+        <a-select-option value="5">5</a-select-option>
       </a-select>结束房号:
       <!-- <a-form-model-item label="单元数量：" prop="region" class="units" :labelCol="labelCol" :wrapperCol="wrapperCol"> -->
-      <a-select v-model="form2.region">
-        <a-select-option value="1">1</a-select-option>
-        <a-select-option value="2">2</a-select-option>
+      <a-select v-model="form2.stopCell" @change="changeStopCell">
+          <a-select-option value="1">1</a-select-option>
+          <a-select-option value="2">2</a-select-option>
+          <a-select-option value="3">3</a-select-option>
+          <a-select-option value="4">4</a-select-option>
+          <a-select-option value="5">5</a-select-option>
       </a-select>
       <!-- </a-form-model-item> -->
     </a-row>
@@ -20,13 +26,13 @@
       <a-table :columns="columns" :dataSource="data" bordered align="center">
         <template
           v-for="col in [
-            'housecode',
-            'unitcode',
-            'unitname',
-            'startfloor',
-            'endfloor',
-            'startroomnum',
-            'endroomnum',
+            'buildingCode',
+            'unitCode',
+            'unitName',
+            'startFloor',
+            'stopFloor',
+            'startCellId',
+            'stopCellId',
             'remark'
           ]"
           :slot="col"
@@ -57,63 +63,65 @@
         </template>
       </a-table>
       <a-row>
-        <a-button type="primary" @click="nextStep()">下一步</a-button>
+        <a-button type="primary" @click="nextStep()">下一步</a-button>&nbsp;
+        <a-button type="primary" @click="prevStep()">上一步</a-button>
       </a-row>
     </a-row>
   </div>
 </template>
 
 <script>
+import { selectUnit, updateUnit } from '@/api/estate'
+const QS = require('qs')
 const columns = [
     {
-        // 楼宇编码	单元编码	单元名称	开始楼层	结束楼层	开始房号	结束房号
         align: 'center',
         title: '楼宇编码',
-        dataIndex: 'housecode',
+        dataIndex: 'buildingCode',
         width: '6%',
-        scopedSlots: { customRender: 'housecode' }
+        scopedSlots: { customRender: 'buildingCode' }
     },
     {
         align: 'center',
         title: '单元编码',
-        dataIndex: 'unitcode',
+        dataIndex: 'unitCode',
         width: '6%',
-        scopedSlots: { customRender: 'unitcode' }
+        scopedSlots: { customRender: 'unitCode' }
     },
     {
         align: 'center',
         title: '单元名称',
-        dataIndex: 'unitname',
+        dataIndex: 'unitName',
         width: '6%',
-        scopedSlots: { customRender: 'unitname' }
+        scopedSlots: { customRender: 'unitName' }
     },
     {
         align: 'center',
         title: '开始楼层',
-        dataIndex: 'startfloor',
+        dataIndex: 'startFloor',
         width: '7%',
-        scopedSlots: { customRender: 'startfloor' }
+        scopedSlots: { customRender: 'startFloor' }
     },
     {
         align: 'center',
         title: '结束楼层',
-        dataIndex: 'endfloor',
+        dataIndex: 'stopFloor',
         width: '7%',
-        scopedSlots: { customRender: 'endfloor' }
+        scopedSlots: { customRender: 'stopFloor' }
     },
     {
         align: 'center',
         title: '开始房号',
-        dataIndex: 'startroomnum',
+        dataIndex: 'startCellId',
         width: '7%',
-        scopedSlots: { customRender: 'startroomnum' }
+        scopedSlots: { customRender: 'startCellId' }
     },
     {
         align: 'center',
         title: '结束房号',
-        dataIndex: 'endroomnum',
+        dataIndex: 'stopCellId',
         width: '7%',
-        scopedSlots: { customRender: 'endroomnum' }
+        scopedSlots: { customRender: 'stopCellId' }
     },
     {
         align: 'center',
@@ -132,29 +140,18 @@ const columns = [
 ]
 
 const data = []
-for (let i = 0; i < 10; i++) {
-    data.push({
-        key: i.toString(),
-        housecode: `B-${i + 1}`,
-        unitcode: `U-${i + 1}`,
-        unitname: `${i + 1}单元`,
-        startfloor: 1,
-        endfloor: 8,
-        startroomnum: 1,
-        endroomnum: 2,
-        remark: ''
-    })
-}
 export default {
     name: 'Step3',
     data() {
-        this.cacheData = data.map(item => ({ ...item }))
         return {
             labelCol: { span: 2 },
             wrapperCol: { span: 1 },
             form2: {
                 name: '',
                 region: undefined,
+                floorNumber: '',
+                startCell: '',
+                stopCell: '',
                 date1: undefined,
                 delivery: false,
                 type: [],
@@ -166,12 +163,72 @@ export default {
             editingKey: ''
         }
     },
+    created() {
+        selectUnit(this.$store.state.twoStep.unitMessage).then(res => {
+            const result = res.result
+            const myData = []
+            for (let i = 0; i < result.length; i++) {
+                const unit = result[i]
+                myData.push({
+                    key: unit.id,
+                    buildingCode: unit.buildingCode,
+                    unitCode: unit.unitCode,
+                    unitName: unit.unitName,
+                    startFloor: unit.startFloor,
+                    stopFloor: unit.stopFloor,
+                    startCellId: unit.startCellId,
+                    stopCellId: unit.stopCellId,
+                    remark: unit.remark
+                })
+            }
+            this.data = myData
+            this.cacheData = this.data.map(item => ({ ...item }))
+        }).catch(err => {
+            this.$notification.success({
+                message: '失败',
+                description: err.result
+            })
+        })
+    },
     methods: {
+        changeFloor() {
+          const floorNumber = this.form2.floorNumber
+          for (let i = 0; i < this.data.length; i++) {
+              this.data[i].startFloor = 1
+              this.data[i].stopFloor = floorNumber
+          }
+        },
+        changeStartCell() {
+            const startCell = this.form2.startCell
+            console.log('----' + startCell)
+            for (let i = 0; i < this.data.length; i++) {
+                this.data[i].startCellId = startCell
+            }
+        },
+        changeStopCell() {
+            const stopCell = this.form2.stopCell
+            for (let i = 0; i < this.data.length; i++) {
+                this.data[i].stopCellId = stopCell
+            }
+        },
         nextStep() {
+            const dataArray = this.data
+            var param = '['
+            for (let i = 0; i < dataArray.length; i++) {
+                if (i !== dataArray.length - 1) {
+                    param += '{ "unitCode": "' + dataArray[i].unitCode + '", "startFloor": ' + dataArray[i].startFloor + ', "stopFloor": ' + dataArray[i].stopFloor + ', "startCellId": ' + dataArray[i].startCellId + ', "stopCellId": ' + dataArray[i].stopCellId + '},'
+                } else {
+                    param += '{ "unitCode": "' + dataArray[i].unitCode + '", "startFloor": ' + dataArray[i].startFloor + ', "stopFloor": ' + dataArray[i].stopFloor + ', "startCellId": ' + dataArray[i].startCellId + ', "stopCellId": ' + dataArray[i].stopCellId + '}]'
+                }
+            }
+            this.$store.commit('SET_TITLE', {
+                cellMessage: param,
+                estateCode: this.$store.state.twoStep.estateCode
+            })
             this.$emit('nextStep')
         },
         prevStep() {
-            // this.$emit('prevStep')
+            this.$emit('prevStep')
         },
         handleChange(value, key, column) {
             const newData = [...this.data]
@@ -203,6 +260,30 @@ export default {
                 this.cacheData = newCacheData
                 this.editingKey = ''
             }
+            // 获取key值
+            target.id = key
+            const param = QS.stringify(target)
+            // 完成房间编号的判断逻辑，弹窗显示
+            // if (target.startCellId > target.stopCellId) {
+            //    //
+            // } else {
+            //     updateUnit(param)
+            // }
+            updateUnit(param).then(res => {
+                setTimeout(() => {
+                    this.$notification.success({
+                        message: '恭喜',
+                        description: res.result
+                    })
+                }, 1000)
+            }).catch(err => {
+                setTimeout(() => {
+                    this.$notification.err({
+                        message: '抱歉',
+                        description: err.result
+                    })
+                }, 1000)
+            })
         },
         cancel(key) {
             const newData = [...this.data]
