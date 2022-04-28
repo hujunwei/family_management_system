@@ -2,6 +2,7 @@ package com.mashibing.mapper;
 
 import com.mashibing.bean.FcUnit;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import org.springframework.stereotype.Component;
 
 /**
  * <p>
@@ -11,6 +12,8 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
  * @author lian
  * @since 2022-04-26
  */
+
+@Component
 public interface FcUnitMapper extends BaseMapper<FcUnit> {
 
 }

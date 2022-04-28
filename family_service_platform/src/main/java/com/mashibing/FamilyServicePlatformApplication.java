@@ -5,7 +5,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-@MapperScan
+@MapperScan(basePackages = "com.mashibing.mapper")
 public class FamilyServicePlatformApplication {
 
     public static void main(String[] args) {
